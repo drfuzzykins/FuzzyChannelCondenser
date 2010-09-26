@@ -1,21 +1,15 @@
-﻿## Interface: 30100
+﻿## Interface: 30300
 ## Title: FuzzyChannelCondenser
 ## Notes: Condenses annoying channel join and leave spam into fun bite-sized candy pieces.
 ## Author: Drfuzzykins <internet@is.seerius.biz>
 ## OptionalDeps: Ace3
-## Version: 0.1b3
-## X-Curse-Packaged-Version: 0.1b3
-## X-Curse-Project-Name: FuzzyChannelCondenser
-## X-Curse-Project-ID: fuzzychannelcondenser
-## X-Curse-Repository-ID: wow/fuzzychannelcondenser/mainline
+## Version: 0.2
 
-#@no-lib-strip@
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 Libs\AceAddon-3.0\AceAddon-3.0.xml
 Libs\AceLocale-3.0\AceLocale-3.0.xml
 Libs\AceTimer-3.0\AceTimer-3.0.xml
-#@end-no-lib-strip@
 
 Localization\enUS.lua
 
