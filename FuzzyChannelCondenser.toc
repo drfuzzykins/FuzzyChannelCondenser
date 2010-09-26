@@ -3,7 +3,7 @@
 ## Notes: Condenses the chat spam from using multiple custom channels.
 ## Author: Drfuzzykins <internet@is.seerius.biz>
 ## OptionalDeps: Ace3
-## Version: 0.2.0
+## Version: 0.2.0 Beta
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
