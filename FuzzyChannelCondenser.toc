@@ -1,9 +1,9 @@
 ﻿## Interface: 30300
 ## Title: FuzzyChannelCondenser
-## Notes: Condenses annoying channel join and leave spam into fun bite-sized candy pieces.
+## Notes: Condenses the chat spam from using multiple custom channels.
 ## Author: Drfuzzykins <internet@is.seerius.biz>
 ## OptionalDeps: Ace3
-## Version: 0.2
+## Version: 0.2.0
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
