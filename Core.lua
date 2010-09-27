@@ -35,13 +35,89 @@ local L = LibStub("AceLocale-3.0"):GetLocale("FuzzyChannelCondenser")
 local FuzzyChannelCondenser = AceAddon:NewAddon("FuzzyChannelCondenser")
 
 local Prat
-local PratAltNames
 local PratChannelColorMemory
 
 local playerName = UnitName("player")
 local throttles = { }
 
 _G.FuzzyChannelCondenser = FuzzyChannelCondenser
+
+local function formatPlayerName(frame, name)
+	local text = ("|Hplayer:%s|h[%1$s]|h"):format(name)
+
+	if Prat then
+		-- Fake a Prat message and send it through a callback to all the modules
+		-- to get all the possible formatting options on the player's name.
+		local player, server = strsplit("-", name)
+		local message =
+			{
+				EVENT = "CHAT_MSG_SAY", CHATTYPE = "SAY", MESSAGE = "", TYPEPOSTFIX = "", TYPEPREFIX = "",
+				lL = "|Hplayer:", PLAYERLINK = name, LL = "|h", pP = "[", PLAYER = player, Pp = "]", Ll = "|h"
+			}
+
+		if server and server:len() > 0 then
+			message.sS = "-"
+			message.SERVER = server
+		end
+
+		Prat.callbacks:Fire("Prat_FrameMessage", message, frame, message.EVENT)
+		Prat.callbacks:Fire("Prat_PreAddMessage", message, frame, message.EVENT)
+
+		-- If the player's name wasn't outright removed, get rid of any
+		-- pre/postfix portions of the message and use it for the new player name.
+		if not message.DONOTPROCESS and (message.pP:len() > 0 or message.PLAYER:len() > 0 or message.Pp:len() > 0) then
+			message.TYPEPREFIX = ""
+			message.TYPEPOSTFIX = ""
+
+			text = Prat.BuildChatText(message)
+		end
+	end
+
+	return text
+end
+
+local function formatChannelName(frame, channelNumber, channelName)
+	local text = ("|Hchannel:%d|h[%1$d. %s]|h"):format(channelNumber, channelName)
+	local info = ChatTypeInfo["CHANNEL" .. channelNumber]
+
+	if Prat then
+		-- Fake a Prat message and send it through a callback to all the modules
+		-- to get all the possible formatting options on the channel's name.
+		local channelLink = ("[%d. %s]"):format(channelNumber, channelName)
+		local message =
+			{
+				EVENT = "CHAT_MSG_CHANNEL_NOTICE", CHATTYPE = "CHANNEL_NOTICE", MESSAGE = "", TYPEPOSTFIX = "", TYPEPREFIX = "",
+				CHANNELNUM = tostring(channelNumber), CC = ". ", nN = "|H", NN = "|h", Nn = "|h", CHANLINK = "channel:" .. channelNumber,
+				CHANNEL = channelName, cC = "[", Cc = "]", PLAYERLINK = ""
+			}
+
+		Prat.callbacks:Fire("Prat_FrameMessage", message, frame, message.EVENT)
+		Prat.callbacks:Fire("Prat_PreAddMessage", message, frame, message.EVENT)
+
+		-- If the channel's name wasn't outright removed, get rid of any
+		-- pre/postfix portions of the message and use it for the new player name.
+		if not message.DONOTPROCESS and (message.cC:len() > 0 or message.CHANNELNUM:len() > 0 or message.CC:len() > 0 or message.CHANNEL:len() > 0 or message.Cc:len() > 0) then
+			message.TYPEPREFIX = ""
+			message.TYPEPOSTFIX = ""
+
+			text = Prat.BuildChatText(message)
+		end
+	end
+
+	if PratChannelColorMemory and PratChannelColorMemory:IsEnabled() then
+		-- Retrieve color information from Prat's Channel Color Memory module and
+		-- use it to colorize the channel's name.
+		local color = PratChannelColorMemory.db.profile.colors[channelName]
+
+		if color then
+			info.r = color.r
+			info.g = color.g
+			info.b = color.b
+		end
+	end
+
+	return ("|cff%02x%02x%02x%s|r"):format(floor(info.r * 255), floor(info.g * 255), floor(info.b * 255), text)
+end
 
 local function intersectThrottledChannelLists(throttles, a, b, c)
 	local lista = throttles[a]
@@ -68,47 +144,6 @@ local function intersectThrottledChannelLists(throttles, a, b, c)
 
 	if #lista == 0 then throttles[a] = nil end
 	if #listb == 0 then throttles[b] = nil end
-end
-
-local function formatPlayerName(frame, name)
-	local text = ("|Hplayer:%s|h[%1$s]|h"):format(name)
-
-	if Prat then
-		local player, server = strsplit("-", name)
-		local message =
-			{
-				EVENT = "CHAT_MSG_SAY", CHATTYPE = "SAY", MESSAGE = "", TYPEPOSTFIX = "", TYPEPREFIX = "",
-				lL = "|Hplayer:", PLAYERLINK = name, LL = "|h", pP = "[", PLAYER = player, Pp = "]", Ll = "|h"
-			}
-
-		if server and server:len() > 0 then
-			message.sS = "-"
-			message.SERVER = server
-		end
-
-		Prat.callbacks:Fire("Prat_FrameMessage", message, frame, message.EVENT)
-
-		if not message.DONOTPROCESS and (message.pP:len() > 0 or message.PLAYER:len() > 0 or message.Pp:len() > 0) then
-			text = ("%s%s%s%s%s%s%s%s%s"):format(message.lL, message.PLAYERLINK, message.LL, message.pP, message.PLAYER, message.sS or "", message.SERVER or "", message.Pp, message.Ll)
-		end
-	end
-
-	if PratAltNames and PratAltNames:IsEnabled() then
-		local main = PratAltNames:getMain(name)
-
-		if main then
-			local color = PratAltNames.db.profile.maincolour or "8080ff"
-			local concat = ("|cff%s(%s)|r"):format(color, main)
-
-			if PratAltNames.db.profile.mainpos == "RIGHT" then
-				text = text .. " " .. concat
-			else
-				text = concat .. " " .. text
-			end
-		end
-	end
-
-	return text
 end
 
 local function printThrottledEvents(description)
@@ -150,39 +185,6 @@ local function isVisibleChannel(frame, channel, zoneID)
 	end
 
 	return false
-end
-
-local function formatChannelName(frame, channelNumber, channelName)
-	local text = ("|Hchannel:%d|h[%1$d. %s]|h"):format(channelNumber, channelName)
-	local info = ChatTypeInfo["CHANNEL" .. channelNumber]
-
-	if Prat then
-		local channelLink = ("[%d. %s]"):format(channelNumber, channelName)
-		local message =
-			{
-				EVENT = "CHAT_MSG_CHANNEL_NOTICE", CHATTYPE = "CHANNEL_NOTICE", MESSAGE = "", TYPEPOSTFIX = "", TYPEPREFIX = "",
-				CHANNELNUM = tostring(channelNumber), CC = ". ", nN = "|H", NN = "|h", Nn = "|h", CHANLINK = "channel:" .. channelNumber,
-				CHANNEL = channelName, cC = "[", Cc = "]", PLAYERLINK = ""
-			}
-
-		Prat.callbacks:Fire("Prat_FrameMessage", message, frame, "CHAT_MSG_CHANNEL_NOTICE")
-
-		if not message.DONOTPROCESS and (message.cC:len() > 0 or message.CHANNELNUM:len() > 0 or message.CC:len() > 0 or message.CHANNEL:len() > 0 or message.Cc:len() > 0) then
-			text = ("%s%s%s%s%s%s%s%s%s"):format(message.nN, message.CHANLINK, message.NN, message.cC, message.CHANNELNUM, message.CC, message.CHANNEL, message.Cc, message.Nn)
-		end
-	end
-
-	if PratChannelColorMemory and PratChannelColorMemory:IsEnabled() then
-		local color = PratChannelColorMemory.db.profile.colors[channelName]
-
-		if color then
-			info.r = color.r
-			info.g = color.g
-			info.b = color.b
-		end
-	end
-
-	return ("|cff%02x%02x%02x%s|r"):format(floor(info.r * 255), floor(info.g * 255), floor(info.b * 255), text)
 end
 
 local function messageFilter(frame, event, ...)
@@ -251,7 +253,6 @@ function FuzzyChannelCondenser:OnEnable()
 	Prat = _G.Prat
 
 	if Prat then
-		PratAltNames = Prat.Addon:GetModule("AltNames", true)
 		PratChannelColorMemory = Prat.Addon:GetModule("ChannelColorMemory", true)
 	end
 
